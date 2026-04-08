@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import random
 from datetime import datetime, time, timedelta
+import random
 from zoneinfo import ZoneInfo
 
 from apscheduler.triggers.base import BaseTrigger
@@ -12,7 +12,7 @@ class DayNightIntervalTrigger(BaseTrigger):
         self,
         *,
         base_interval_seconds: int,  # 白天基础间隔（秒）
-        offpeak_multiplier: int | float,  # 非高峰时段倍数
+        offpeak_multiplier: float,  # 非高峰时段倍数
         jitter_max_seconds: int,  # 单边抖动上限，范围 [0, N]
         timezone_name: str = "Asia/Shanghai",  # 判定时区
         day_start: time = time(10, 0, 0),  # 白天开始时间
@@ -116,7 +116,7 @@ class DayNightIntervalTrigger(BaseTrigger):
 def create_day_night_trigger(
     *,
     base_interval_seconds: int,  # 白天基础间隔（秒）
-    offpeak_multiplier: int | float,  # 非高峰时段倍数
+    offpeak_multiplier: float,  # 非高峰时段倍数
     jitter_max_seconds: int,  # 单边抖动上限，范围 [0, N]
     timezone_name: str = "Asia/Shanghai",  # 判定时区
     day_start_hour: int = 10,

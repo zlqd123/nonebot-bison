@@ -1,7 +1,8 @@
 import asyncio
+from collections.abc import Callable
 import json
 import time
-from typing import Any, Callable, ClassVar, Optional
+from typing import Any, ClassVar
 
 import httpx
 from httpx import AsyncClient
@@ -12,6 +13,7 @@ from nonebot_bison.post import Post
 from nonebot_bison.types import Category, RawPost, Target
 from nonebot_bison.utils.site import CookieClientManager, Site
 
+from .day_night_trigger import create_day_night_trigger
 from .shumei_did import get_d_id
 from .skland_sign import (
     generate_signature_for_item,
@@ -19,17 +21,13 @@ from .skland_sign import (
     generate_signature_for_user_items,
 )
 from .skland_token import get_token_manager
-from .day_night_trigger import create_day_night_trigger
 
 SignBuilder = Callable[[str, str], tuple[str, dict[str, str]]]
 
 
 class SklandClientManager(CookieClientManager):
     _site_name = "skland.com"
-    _user_agent = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) "
-        "Gecko/20100101 Firefox/148.0"
-    )
+    _user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0"
 
     async def get_cookie_name(self, content: str) -> str:
         return "skland"
@@ -43,6 +41,7 @@ class SklandClientManager(CookieClientManager):
     async def get_query_name_client(cls) -> AsyncClient:
         return httpx.AsyncClient(headers={"User-Agent": cls._user_agent})
 
+
 class SklandSite(Site):
     name = "skland.com"
     schedule_type = create_day_night_trigger(
@@ -52,6 +51,7 @@ class SklandSite(Site):
     )
     schedule_setting: ClassVar[dict] = {}
     client_mgr = SklandClientManager
+
 
 class Skland(NewMessage):
     categories: ClassVar[dict[Category, str]] = {}
@@ -66,16 +66,13 @@ class Skland(NewMessage):
 
     _max_retries: ClassVar[int] = 2
     _video_extensions: ClassVar[tuple[str, ...]] = (".m3u8", ".mp4", ".mov", ".webm", ".mkv")
-    _user_agent: ClassVar[str] = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) "
-        "Gecko/20100101 Firefox/148.0"
-    )
+    _user_agent: ClassVar[str] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0"
 
-    _session_did: ClassVar[Optional[str]] = None
-    _session_token: ClassVar[Optional[str]] = None
-    _session_token_hour: ClassVar[Optional[int]] = None
-    _session_created_at: ClassVar[Optional[float]] = None
-    _session_lock: ClassVar[Optional[asyncio.Lock]] = None
+    _session_did: ClassVar[str | None] = None
+    _session_token: ClassVar[str | None] = None
+    _session_token_hour: ClassVar[int | None] = None
+    _session_created_at: ClassVar[float | None] = None
+    _session_lock: ClassVar[asyncio.Lock | None] = None
 
     @classmethod
     def _get_session_lock(cls) -> asyncio.Lock:
@@ -177,7 +174,7 @@ class Skland(NewMessage):
         return ""
 
     @staticmethod
-    def _normalize_timestamp(value: Any) -> Optional[float]:
+    def _normalize_timestamp(value: Any) -> float | None:
         if value is None:
             return None
         if isinstance(value, str) and value.isdigit():
@@ -329,7 +326,7 @@ class Skland(NewMessage):
         sign_builder: SignBuilder,
         timeout: float,
         log_prefix: str,
-    ) -> Optional[dict]:
+    ) -> dict | None:
         retry_count = 0
         last_error = ""
         last_response_content = ""
@@ -353,26 +350,20 @@ class Skland(NewMessage):
                         await cls._invalidate_session()
                         continue
 
-                    logger.error(
-                        f"[Skland] {log_prefix} 失败: {last_error}, 响应内容: {response_text}"
-                    )
+                    logger.error(f"[Skland] {log_prefix} 失败: {last_error}, 响应内容: {response_text}")
                     return None
 
                 payload = response.json()
                 if payload.get("code") != 0:
                     last_error = f"code={payload.get('code')}, message={payload.get('message')}"
-                    last_response_content = cls._truncate_text(
-                        json.dumps(payload, ensure_ascii=False)
-                    )
+                    last_response_content = cls._truncate_text(json.dumps(payload, ensure_ascii=False))
 
                     if payload.get("code") in (401, 403, 10001) and retry_count < cls._max_retries:
                         retry_count += 1
                         await cls._invalidate_session()
                         continue
 
-                    logger.error(
-                        f"[Skland] {log_prefix} 失败: {last_error}, 响应内容: {last_response_content}"
-                    )
+                    logger.error(f"[Skland] {log_prefix} 失败: {last_error}, 响应内容: {last_response_content}")
                     return None
 
                 return payload
@@ -401,9 +392,7 @@ class Skland(NewMessage):
 
                 break
 
-        logger.error(
-            f"[Skland] {log_prefix} 失败: {last_error}, 响应内容: {last_response_content or '(无响应内容)'}"
-        )
+        logger.error(f"[Skland] {log_prefix} 失败: {last_error}, 响应内容: {last_response_content or '(无响应内容)'}")
         return None
 
     @classmethod
@@ -437,7 +426,7 @@ class Skland(NewMessage):
             return Target(target_text)
         raise cls.ParseTargetException("请输入数字ID")
 
-    def _convert_to_post_format(self, item_data: dict) -> Optional[dict]:
+    def _convert_to_post_format(self, item_data: dict) -> dict | None:
         try:
             item = item_data.get("item", {}) or {}
             user = item_data.get("user", {}) or {}
@@ -506,12 +495,11 @@ class Skland(NewMessage):
 
         latest_ids = post_ids[:3]
         logger.info(
-            f"[Skland] 正在抓取: {nickname or '未知用户'} ({user_id}), "
-            f"动态数: {len(posts)}, 最新ID: {latest_ids}"
+            f"[Skland] 正在抓取: {nickname or '未知用户'} ({user_id}), 动态数: {len(posts)}, 最新ID: {latest_ids}"
         )
         return posts
 
-    async def _fetch_item_detail(self, item_id: str) -> Optional[dict]:
+    async def _fetch_item_detail(self, item_id: str) -> dict | None:
         payload = await self._signed_get_json(
             url="https://zonai.skland.com/web/v1/item",
             params={"id": item_id},
@@ -578,7 +566,7 @@ class Skland(NewMessage):
             return float(created_at) / 1000
         return float(created_at)
 
-    async def _process_image(self, image_url: str) -> Optional[bytes]:
+    async def _process_image(self, image_url: str) -> bytes | None:
         try:
             async with self._create_http_client(http2=True) as client:
                 resp = await client.get(image_url, headers=self._build_image_headers(), timeout=10.0)
