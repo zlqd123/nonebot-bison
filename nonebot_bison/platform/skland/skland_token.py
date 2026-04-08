@@ -3,14 +3,14 @@ sk_token.py - 动态时间校准修复版
 实现了基于 32.js 逆向逻辑的时间同步机制,解决 401 签名失效问题。
 """
 
-import time
-import logging
-from typing import Optional
-from dataclasses import dataclass
 import asyncio
-import aiohttp
-from .skland_sign import generate_signature
+from dataclasses import dataclass
+import logging
+import time
 
+import aiohttp
+
+from .skland_sign import generate_signature
 
 logger = logging.getLogger(__name__)
 _default_token_manager = None
@@ -45,7 +45,7 @@ class SkTokenManager:
         self.platform = platform
         self.vName = vName
         self.refresh_url = refresh_url
-        self.current_token: Optional[TokenInfo] = None
+        self.current_token: TokenInfo | None = None
         self._refresh_lock = asyncio.Lock()
 
         self.user_agent = (
@@ -157,7 +157,7 @@ class SkTokenManager:
 
 
 # 快捷调用接口
-async def get_token_manager(dId: Optional[str] = None, **kwargs) -> SkTokenManager:
+async def get_token_manager(dId: str | None = None, **kwargs) -> SkTokenManager:
     global _default_token_manager
     if "_default_token_manager" not in globals() or _default_token_manager is None:
         if dId is None:
