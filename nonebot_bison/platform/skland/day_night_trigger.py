@@ -66,7 +66,7 @@ class DayNightIntervalTrigger(BaseTrigger):
 
     def _get_offpeak_interval_seconds(self) -> int:
         interval = self.base_interval_seconds * self.offpeak_multiplier
-        return max(1, int(round(interval)))
+        return max(1, round(interval))
 
     def _interval_for(self, dt: datetime) -> int:
         return self._get_day_interval_seconds() if self._is_day_window(dt) else self._get_offpeak_interval_seconds()

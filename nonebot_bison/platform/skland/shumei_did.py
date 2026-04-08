@@ -258,7 +258,7 @@ def get_tn(o: dict):
 
     for i in sorted_keys:
         v = o[i]
-        if isinstance(v, (int, float)):
+        if isinstance(v, int | float):
             v = str(v * 10000)
         elif isinstance(v, dict):
             v = get_tn(v)

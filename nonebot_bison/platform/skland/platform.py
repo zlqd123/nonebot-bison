@@ -161,7 +161,7 @@ class Skland(NewMessage):
             return ""
         if isinstance(value, str):
             return value.strip()
-        if isinstance(value, (int, float, bool)):
+        if isinstance(value, int | float | bool):
             return str(value)
         return ""
 
@@ -179,7 +179,7 @@ class Skland(NewMessage):
             return None
         if isinstance(value, str) and value.isdigit():
             value = int(value)
-        if isinstance(value, (int, float)):
+        if isinstance(value, int | float):
             number = float(value)
             return number / 1000 if number > 10_000_000_000 else number
         return None
@@ -567,7 +567,7 @@ class Skland(NewMessage):
         created_at = post.get("created_at", time.time())
         if isinstance(created_at, str) and created_at.isdigit():
             created_at = int(created_at)
-        if isinstance(created_at, (int, float)) and float(created_at) > 10_000_000_000:
+        if isinstance(created_at, int | float) and float(created_at) > 10_000_000_000:
             return float(created_at) / 1000
         return float(created_at)
 
