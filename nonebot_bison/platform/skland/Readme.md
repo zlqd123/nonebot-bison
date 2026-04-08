@@ -1,9 +1,11 @@
-# 部分文件转载自：https://gitee.com/FancyCabbage/skyland-auto-sign/
-# 原作者 xxyz30 @FancyCabbage
-# 原项目skyland-auto-sign
-# 修改日期：2026/01/10
-# MIT License
-# Copyright (c) 2023 xxyz30
+# 森空岛接口说明文档
+
+> 部分文件转载自：<https://gitee.com/FancyCabbage/skyland-auto-sign/>
+> 原作者 xxyz30 @FancyCabbage
+> 原项目：skyland-auto-sign
+> 修改日期：2026/01/10
+> MIT License
+> Copyright (c) 2023 xxyz30
 
 ## 接口说明和使用示例
 
@@ -55,7 +57,7 @@ async def main():
 
 ##### A. 获取用户信息接口
 
-函数: `generate_signature_for_user(token, userId, dId)`  
+函数: `generate_signature_for_user(token, userId, dId)`
 适用路径: `/web/v1/user`
 
 ```python
@@ -68,7 +70,7 @@ headers['sign'] = sign  # 必须手动注入生成的签名
 
 ##### B. 获取物品详情接口
 
-函数: `generate_signature_for_item(token, itemId, dId)`  
+函数: `generate_signature_for_item(token, itemId, dId)`
 适用路径: `/web/v1/item`
 
 ```python
@@ -81,18 +83,18 @@ headers['sign'] = sign
 
 ##### C. 获取用户物品列表接口
 
-函数: `generate_signature_for_user_items(token, userId, pageSize, sortType, dId)`  
+函数: `generate_signature_for_user_items(token, userId, pageSize, sortType, dId)`
 适用路径: `/web/v1/user/items`
 
 ```python
 from sk_sign import generate_signature_for_user_items
 
-传入分页和排序参数以确保签名校验通过
+# 传入分页和排序参数以确保签名校验通过
 sign, headers = generate_signature_for_user_items(
-    token=token, 
-    userId=uid, 
-    pageSize="10", 
-    sortType="2", 
+    token=token,
+    userId=uid,
+    pageSize="10",
+    sortType="2",
     dId=dId
 )
 headers['sign'] = sign
@@ -150,7 +152,7 @@ def main():
 
 ### 4. day_night_trigger.py 接口说明
 
-该模块用于生成“分时调度”的自定义 APScheduler Trigger。  
+该模块用于生成"分时调度"的自定义 APScheduler Trigger。
 适用于需要按不同时段切换轮询频率的场景，例如：
 
 - 白天高频轮询
@@ -173,26 +175,26 @@ def main():
 
 输入参数：
 
-- `base_interval_seconds`  
+- `base_interval_seconds`
   白天时段基础轮询间隔，单位秒
 
-- `offpeak_multiplier`  
-  非高峰时段倍数  
+- `offpeak_multiplier`
+  非高峰时段倍数
   例如：白天为 `180` 秒，倍数为 `3`，则夜间为 `540` 秒
 
-- `jitter_max_seconds`  
+- `jitter_max_seconds`
   单边抖动上限，实际抖动范围为 `[0, jitter_max_seconds]`
 
-- `timezone_name`  
+- `timezone_name`
   判定时区，默认 `"Asia/Shanghai"`
 
-- `day_start`  
+- `day_start`
   白天开始时间，默认 `10:00:00`
 
-- `day_end`  
+- `day_end`
   白天结束时间，默认 `20:00:00`
 
-- `enable_jitter`  
+- `enable_jitter`
   是否启用抖动，默认 `True`
 
 输出：
@@ -205,25 +207,25 @@ def main():
 
 输入参数：
 
-- `base_interval_seconds`  
+- `base_interval_seconds`
   白天时段基础轮询间隔，单位秒
 
-- `offpeak_multiplier`  
+- `offpeak_multiplier`
   非高峰时段倍数
 
-- `jitter_max_seconds`  
+- `jitter_max_seconds`
   单边抖动上限，单位秒
 
-- `timezone_name`  
+- `timezone_name`
   判定时区，默认 `"Asia/Shanghai"`
 
-- `day_start_hour` / `day_start_minute` / `day_start_second`  
+- `day_start_hour` / `day_start_minute` / `day_start_second`
   白天开始时间，默认 `10:00:00`
 
-- `day_end_hour` / `day_end_minute` / `day_end_second`  
+- `day_end_hour` / `day_end_minute` / `day_end_second`
   白天结束时间，默认 `20:00:00`
 
-- `enable_jitter`  
+- `enable_jitter`
   是否启用抖动，默认 `True`
 
 输出：
@@ -313,15 +315,15 @@ trigger = create_day_night_trigger(
 
 则实际规则为：
 
-- 北京时间 `10:00:00 <= t < 20:00:00`：  
+- 北京时间 `10:00:00 <= t < 20:00:00`：
   每 `180` 秒触发一次，并附加 `[0, 15]` 秒抖动
 
-- 其它时间：  
+- 其它时间：
   每 `540` 秒触发一次，并附加 `[0, 15]` 秒抖动
 
 #### 说明
 
-1. 该模块不绑定具体平台，可复用于任意需要“分时轮询”的场景。  
-2. 抖动为“单边正向抖动”，不会提前执行，只会在原定触发时间基础上向后偏移。  
-3. 如需调整白天时段，只需修改 `day_start` 和 `day_end` 参数。  
-4. 如需关闭抖动，可设置 `enable_jitter=False` 或将 `jitter_max_seconds=0`。
+1. 该模块不绑定具体平台，可复用于任意需要"分时轮询"的场景。
+1. 抖动为"单边正向抖动"，不会提前执行，只会在原定触发时间基础上向后偏移。
+1. 如需调整白天时段，只需修改 `day_start` 和 `day_end` 参数。
+1. 如需关闭抖动，可设置 `enable_jitter=False` 或将 `jitter_max_seconds=0`。

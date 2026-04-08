@@ -1,8 +1,7 @@
 import asyncio
-from collections.abc import Callable
 import json
 import time
-from typing import Any, ClassVar
+from typing import Any, Callable, ClassVar, Optional
 
 import httpx
 from httpx import AsyncClient
@@ -13,7 +12,6 @@ from nonebot_bison.post import Post
 from nonebot_bison.types import Category, RawPost, Target
 from nonebot_bison.utils.site import CookieClientManager, Site
 
-from .day_night_trigger import create_day_night_trigger
 from .shumei_did import get_d_id
 from .skland_sign import (
     generate_signature_for_item,
@@ -21,13 +19,14 @@ from .skland_sign import (
     generate_signature_for_user_items,
 )
 from .skland_token import get_token_manager
+from .day_night_trigger import create_day_night_trigger
 
 SignBuilder = Callable[[str, str], tuple[str, dict[str, str]]]
 
 
 class SklandClientManager(CookieClientManager):
     _site_name = "skland.com"
-    _user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0"
+    _user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) " "Gecko/20100101 Firefox/148.0"
 
     async def get_cookie_name(self, content: str) -> str:
         return "skland"
@@ -66,13 +65,13 @@ class Skland(NewMessage):
 
     _max_retries: ClassVar[int] = 2
     _video_extensions: ClassVar[tuple[str, ...]] = (".m3u8", ".mp4", ".mov", ".webm", ".mkv")
-    _user_agent: ClassVar[str] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) Gecko/20100101 Firefox/148.0"
+    _user_agent: ClassVar[str] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:148.0) " "Gecko/20100101 Firefox/148.0"
 
-    _session_did: ClassVar[str | None] = None
-    _session_token: ClassVar[str | None] = None
-    _session_token_hour: ClassVar[int | None] = None
-    _session_created_at: ClassVar[float | None] = None
-    _session_lock: ClassVar[asyncio.Lock | None] = None
+    _session_did: ClassVar[Optional[str]] = None
+    _session_token: ClassVar[Optional[str]] = None
+    _session_token_hour: ClassVar[Optional[int]] = None
+    _session_created_at: ClassVar[Optional[float]] = None
+    _session_lock: ClassVar[Optional[asyncio.Lock]] = None
 
     @classmethod
     def _get_session_lock(cls) -> asyncio.Lock:
@@ -100,7 +99,7 @@ class Skland(NewMessage):
             cls._session_created_at = None
 
     @classmethod
-    async def _get_or_refresh_session(cls, force_refresh: bool = False) -> tuple[str, str]:
+    async def _get_or_refresh_session(cls, force_refresh: bool = False) -> tuple[str | None, str | None]:
         async with cls._get_session_lock():
             current_hour = cls._get_current_token_hour()
             need_refresh = (
@@ -174,7 +173,7 @@ class Skland(NewMessage):
         return ""
 
     @staticmethod
-    def _normalize_timestamp(value: Any) -> float | None:
+    def _normalize_timestamp(value: Any) -> Optional[float]:
         if value is None:
             return None
         if isinstance(value, str) and value.isdigit():
@@ -326,7 +325,7 @@ class Skland(NewMessage):
         sign_builder: SignBuilder,
         timeout: float,
         log_prefix: str,
-    ) -> dict | None:
+    ) -> Optional[dict]:
         retry_count = 0
         last_error = ""
         last_response_content = ""
@@ -334,6 +333,11 @@ class Skland(NewMessage):
         while retry_count <= cls._max_retries:
             try:
                 d_id, token = await cls._get_or_refresh_session(force_refresh=False)
+
+                # 添加检查
+                if d_id is None or token is None:
+                    raise RuntimeError("Failed to get session credentials (d_id or token is None)")
+
                 sign, headers = sign_builder(token, d_id)
                 full_headers = cls._build_common_headers(headers, sign, d_id)
 
@@ -426,7 +430,7 @@ class Skland(NewMessage):
             return Target(target_text)
         raise cls.ParseTargetException("请输入数字ID")
 
-    def _convert_to_post_format(self, item_data: dict) -> dict | None:
+    def _convert_to_post_format(self, item_data: dict) -> Optional[dict]:
         try:
             item = item_data.get("item", {}) or {}
             user = item_data.get("user", {}) or {}
@@ -495,11 +499,11 @@ class Skland(NewMessage):
 
         latest_ids = post_ids[:3]
         logger.info(
-            f"[Skland] 正在抓取: {nickname or '未知用户'} ({user_id}), 动态数: {len(posts)}, 最新ID: {latest_ids}"
+            f"[Skland] 正在抓取: {nickname or '未知用户'} ({user_id}), " f"动态数: {len(posts)}, 最新ID: {latest_ids}"
         )
         return posts
 
-    async def _fetch_item_detail(self, item_id: str) -> dict | None:
+    async def _fetch_item_detail(self, item_id: str) -> Optional[dict]:
         payload = await self._signed_get_json(
             url="https://zonai.skland.com/web/v1/item",
             params={"id": item_id},
@@ -566,7 +570,7 @@ class Skland(NewMessage):
             return float(created_at) / 1000
         return float(created_at)
 
-    async def _process_image(self, image_url: str) -> bytes | None:
+    async def _process_image(self, image_url: str) -> Optional[bytes]:
         try:
             async with self._create_http_client(http2=True) as client:
                 resp = await client.get(image_url, headers=self._build_image_headers(), timeout=10.0)
@@ -615,7 +619,7 @@ class Skland(NewMessage):
             self,
             content=content,
             title=post.get("title"),
-            url=post.get("url"),
+            # url=post.get("url"),
             images=images if images else None,
             nickname=nickname,
             timestamp=self.get_date(post),

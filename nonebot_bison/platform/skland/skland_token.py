@@ -1,18 +1,19 @@
 """
 sk_token.py - 动态时间校准修复版
-实现了基于 32.js 逆向逻辑的时间同步机制，解决 401 签名失效问题。
+实现了基于 32.js 逆向逻辑的时间同步机制,解决 401 签名失效问题。
 """
 
-import asyncio
-from dataclasses import dataclass
-import logging
 import time
-
+import logging
+from typing import Optional
+from dataclasses import dataclass
+import asyncio
 import aiohttp
-
 from .skland_sign import generate_signature
 
+
 logger = logging.getLogger(__name__)
+_default_token_manager = None
 
 
 @dataclass
@@ -21,12 +22,12 @@ class TokenInfo:
 
     token: str
     timestamp: int  # 获取Token时的本地时间戳
-    server_time_offset: int = 0  # 核心：服务器与本地时间的偏移量 (serverTime - clientTime)
+    server_time_offset: int = 0  # 核心:服务器与本地时间的偏移量 (serverTime - clientTime)
     is_valid: bool = True
 
     @property
     def age(self) -> int:
-        """token年龄（秒）"""
+        """token年龄(秒)"""
         return int(time.time()) - self.timestamp
 
 
@@ -44,7 +45,7 @@ class SkTokenManager:
         self.platform = platform
         self.vName = vName
         self.refresh_url = refresh_url
-        self.current_token: TokenInfo | None = None
+        self.current_token: Optional[TokenInfo] = None
         self._refresh_lock = asyncio.Lock()
 
         self.user_agent = (
@@ -52,10 +53,10 @@ class SkTokenManager:
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/122.0.0.0 Safari/537.36"
         )
-        logger.info(f"Token管理器初始化完成，dId: {dId[:20]}...")
+        logger.info(f"Token管理器初始化完成,dId: {dId[:20]}...")
 
-    async def get_token_info(self, force_refresh: bool = False) -> TokenInfo:
-        """获取完整的TokenInfo对象，包含时间偏移"""
+    async def get_token_info(self, force_refresh: bool = False) -> TokenInfo | None:
+        """获取完整的TokenInfo对象,包含时间偏移"""
         need_refresh = (
             force_refresh
             or self.current_token is None
@@ -73,6 +74,8 @@ class SkTokenManager:
     async def get_token(self, force_refresh: bool = False) -> str:
         """获取有效token字符串"""
         info = await self.get_token_info(force_refresh)
+        if info is None:
+            raise RuntimeError("Failed to get token info")
         return info.token
 
     async def _refresh_token(self) -> None:
@@ -84,10 +87,10 @@ class SkTokenManager:
         try:
             # 准备基础签名参数
             curr_token_str = self.current_token.token if self.current_token else ""
-            # 如果没有当前token，使用空字符串尝试首次获取
+            # 如果没有当前token,使用空字符串尝试首次获取
 
-            # 初始偏移尝试
-            initial_adjustment = self.current_token.server_time_offset if self.current_token else -2
+            # 初始偏移尝试 先保留 或许有用
+            # initial_adjustment = self.current_token.server_time_offset if self.current_token else -2
 
             sign, headers = generate_signature(
                 token=curr_token_str,
@@ -112,7 +115,7 @@ class SkTokenManager:
 
     async def _call_refresh_api(self, sign: str, headers: dict[str, str]) -> tuple[str, int]:
         """
-        核心逻辑：模拟 32.js 的 setSignTime 过程
+        核心逻辑:模拟 32.js 的 setSignTime 过程
         """
         # 记录本地发起请求的时间戳 (clientTime)
         client_time = int(time.time())
@@ -140,7 +143,7 @@ class SkTokenManager:
                 # 提取响应体中的顶级 timestamp (serverTime)
                 server_time = res_json.get("timestamp")
 
-                # 计算偏移：serverTime - clientTime
+                # 计算偏移:serverTime - clientTime
                 # 对应 32.js 中的 y (serverTime) 和 A (clientTime) 的逻辑
                 offset = 0
                 if server_time:
@@ -154,7 +157,7 @@ class SkTokenManager:
 
 
 # 快捷调用接口
-async def get_token_manager(dId: str | None = None, **kwargs) -> SkTokenManager:
+async def get_token_manager(dId: Optional[str] = None, **kwargs) -> SkTokenManager:
     global _default_token_manager
     if "_default_token_manager" not in globals() or _default_token_manager is None:
         if dId is None:
@@ -165,6 +168,7 @@ async def get_token_manager(dId: str | None = None, **kwargs) -> SkTokenManager:
     return _default_token_manager
 
 
-async def get_current_token_info() -> TokenInfo:
+async def get_current_token_info() -> TokenInfo | None:
+    """获取当前token信息 可能返回None"""
     manager = await get_token_manager()
     return await manager.get_token_info()

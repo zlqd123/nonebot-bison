@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta
 import random
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from apscheduler.triggers.base import BaseTrigger
@@ -11,12 +11,12 @@ class DayNightIntervalTrigger(BaseTrigger):
     def __init__(
         self,
         *,
-        base_interval_seconds: int,  # 白天基础间隔（秒）
-        offpeak_multiplier: float,  # 非高峰时段倍数
-        jitter_max_seconds: int,  # 单边抖动上限，范围 [0, N]
+        base_interval_seconds: int,  # 白天基础间隔(秒)
+        offpeak_multiplier: int | float,  # 非高峰时段倍数
+        jitter_max_seconds: int,  # 单边抖动上限,范围 [0, N]
         timezone_name: str = "Asia/Shanghai",  # 判定时区
         day_start: time = time(10, 0, 0),  # 白天开始时间
-        day_end: time = time(20, 0, 0),  # 白天结束时间（右开区间）
+        day_end: time = time(20, 0, 0),  # 白天结束时间(右开区间)
         enable_jitter: bool = True,  # 是否启用抖动
     ):
         if base_interval_seconds <= 0:
@@ -115,9 +115,9 @@ class DayNightIntervalTrigger(BaseTrigger):
 
 def create_day_night_trigger(
     *,
-    base_interval_seconds: int,  # 白天基础间隔（秒）
-    offpeak_multiplier: float,  # 非高峰时段倍数
-    jitter_max_seconds: int,  # 单边抖动上限，范围 [0, N]
+    base_interval_seconds: int,  # 白天基础间隔(秒)
+    offpeak_multiplier: int | float,  # 非高峰时段倍数
+    jitter_max_seconds: int,  # 单边抖动上限,范围 [0, N]
     timezone_name: str = "Asia/Shanghai",  # 判定时区
     day_start_hour: int = 10,
     day_start_minute: int = 0,

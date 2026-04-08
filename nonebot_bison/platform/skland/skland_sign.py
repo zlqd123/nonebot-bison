@@ -5,10 +5,16 @@ import time
 
 
 def generate_signature(
-    token: str, path: str, params: dict, dId: str, platform: str = "3", vName: str = "1.0.0", timestamp: str = None
+    token: str,
+    path: str,
+    params: dict,
+    dId: str,
+    platform: str = "3",
+    vName: str = "1.0.0",
+    timestamp: str | None = None,
 ) -> tuple[str, dict[str, str]]:
     """
-    修改后的签名生成函数：
+    修改后的签名生成函数:
     1. 不再使用硬编码的 SECRET。
     2. 使用传入的 token 作为 HMAC 的 Key。
     3. 保持 Path + Query + Timestamp + HeaderJSON 的无缝拼接逻辑。
@@ -31,14 +37,14 @@ def generate_signature(
     sign_string = f"{path}{query_content}{timestamp}{header_str}"
 
     # 5. 加密逻辑 (HMAC-SHA256 + MD5)
-    # 修改处：这里使用 token.encode('utf-8') 作为 Key
+    # 修改处:这里使用 token.encode('utf-8') 作为 Key
     key_bytes = token.encode("utf-8")
     sign_bytes = sign_string.encode("utf-8")
 
-    # 第一层：HMAC-SHA256
+    # 第一层:HMAC-SHA256
     hmac_result = hmac.new(key_bytes, sign_bytes, hashlib.sha256).hexdigest()
 
-    # 第二层：MD5
+    # 第二层:MD5
     sign = hashlib.md5(hmac_result.encode("utf-8")).hexdigest()
 
     return sign, header_ca
