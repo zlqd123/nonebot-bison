@@ -1,13 +1,14 @@
-import re
 import asyncio
-import hashlib
 import base64
-from datetime import datetime, timedelta
-from typing import Any, ClassVar, Optional
 from collections.abc import Collection
+from datetime import datetime, timedelta
+import hashlib
+import re
+from typing import Any, ClassVar
 
-from httpx import AsyncClient, HTTPStatusError, TimeoutException, NetworkError
+from httpx import AsyncClient, HTTPStatusError, NetworkError, TimeoutException
 from nonebot.log import logger
+
 from nonebot_bison.post import Post
 from nonebot_bison.types import Category, RawPost, Tag, Target
 from nonebot_bison.utils import http_client
@@ -57,7 +58,7 @@ class HykbDeepScraper:
     FIXED_SALT: str = "Nfb2nIcOmeSx7ltv"
 
     @classmethod
-    def _extract_waf_seed(cls, html: str) -> Optional[str]:
+    def _extract_waf_seed(cls, html: str) -> str | None:
         pattern = r'[A-Za-z]{3,}\s*\(\s*["\']([A-Za-z0-9+/=]{40,})["\']\s*\)'
         match = re.search(pattern, html)
         if match:
@@ -76,7 +77,7 @@ class HykbDeepScraper:
         return None
 
     @classmethod
-    async def get_html_with_waf(cls, url: str) -> Optional[str]:
+    async def get_html_with_waf(cls, url: str) -> str | None:
         async with AsyncClient(headers=_HEADER, follow_redirects=True, timeout=30.0) as client:
             try:
                 res = await client.get(url)
@@ -128,7 +129,7 @@ class HykbDeepScraper:
                 return None
 
     @classmethod
-    def _extract_with_depth(cls, html: str, start_marker: str) -> Optional[str]:
+    def _extract_with_depth(cls, html: str, start_marker: str) -> str | None:
         start = html.find(start_marker)
         if start == -1:
             base_class = start_marker.split('"')[1] if '"' in start_marker else start_marker.split("'")[1]
@@ -167,7 +168,7 @@ class HykbDeepScraper:
         return None
 
     @classmethod
-    def _extract_div_by_class(cls, html: str, class_name: str) -> Optional[str]:
+    def _extract_div_by_class(cls, html: str, class_name: str) -> str | None:
         if not html:
             return None
         return cls._extract_with_depth(html, f'<div class="{class_name}">')
@@ -345,7 +346,7 @@ class Haoyoukuaibao(NewMessage):
         return f"{target_str}_{post_id}"
 
     @classmethod
-    async def _fetch_post_detail(cls, post_id: str, target_str: str) -> Optional[tuple[str, list[str]]]:
+    async def _fetch_post_detail(cls, post_id: str, target_str: str) -> tuple[str, list[str]] | None:
         detail_url = f"https://bbs.3839.com/thread-{post_id}.htm"
         html = await HykbDeepScraper.get_html_with_waf(detail_url)
         if not html:
@@ -402,7 +403,7 @@ class Haoyoukuaibao(NewMessage):
         return retry_key
 
     @classmethod
-    async def _prepare_raw_post(cls, raw_post: RawPost, target_str: str) -> Optional[RawPost]:
+    async def _prepare_raw_post(cls, raw_post: RawPost, target_str: str) -> RawPost | None:
         post_id = raw_post.get("id")
         retry_key = cls._make_retry_key(target_str, post_id)
 
